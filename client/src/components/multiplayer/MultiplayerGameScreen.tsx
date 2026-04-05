@@ -86,31 +86,6 @@ export function MultiplayerGameScreen({
     oppConnectedRef.current = opponent.connected;
   }, [opponent]);
 
-  // Reveal pulse — fires once per reveal transition, keyed on round so a
-  // lingering reveal phase doesn't re-buzz.
-  const lastRevealRoundRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (!isReveal || !person) return;
-    if (lastRevealRoundRef.current === room.currentRound) return;
-    lastRevealRoundRef.current = room.currentRound;
-    const selfPickRaw = room.picks?.[playerId] ?? null;
-    const oppPickRaw = opponent ? room.picks?.[opponent.id] ?? null : null;
-    const sCorr = selfPickRaw === person.country;
-    const oCorr = oppPickRaw === person.country;
-    // Prioritize the feel of YOUR result first, then layer a subtle extra
-    // pulse if the outcome was a meaningful split decision.
-    if (sCorr) {
-      haptic("success");
-      // Outplayed the rival — extra triumphant bump.
-      if (opponent && !oCorr) {
-        const t = setTimeout(() => haptic("streak"), 200);
-        return () => clearTimeout(t);
-      }
-    } else {
-      haptic("error");
-    }
-  }, [isReveal, room.currentRound, person, opponent, playerId, room.picks]);
-
   if (!person || !self) return null;
 
   const correctCountry = isReveal ? person.country : null;

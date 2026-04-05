@@ -18,28 +18,6 @@ export function GameScreen({ state, onGuess, onNextRound, onExit }: GameScreenPr
   const options = state.options[state.currentRound];
   const isResult = state.phase === "result";
 
-  // Haptic reveal pulse — fires once per result transition. The streak
-  // milestone bump is stacked on top of a correct answer so a 3/5/10-streak
-  // feels escalating rather than flat.
-  const prevStreakRef = useRef(state.streak);
-  useEffect(() => {
-    if (!isResult) {
-      prevStreakRef.current = state.streak;
-      return;
-    }
-    if (state.lastGuessCorrect === true) {
-      haptic("success");
-      // Streak milestones get an additional "streak" rumble ~220ms later so
-      // the two pulses are clearly distinct.
-      if (state.streak >= 3 && state.streak % 3 === 0) {
-        const t = setTimeout(() => haptic("streak"), 220);
-        return () => clearTimeout(t);
-      }
-    } else if (state.lastGuessCorrect === false) {
-      haptic("error");
-    }
-  }, [isResult, state.lastGuessCorrect, state.streak]);
-
   // Round-advance tick — fires a soft pulse as each progress segment fills.
   const prevRoundRef = useRef(state.currentRound);
   useEffect(() => {
