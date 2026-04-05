@@ -182,7 +182,6 @@ export function areHapticsEnabled(): boolean {
 // fires `label.click()`, which toggles the switch and triggers a native
 // iOS haptic. Pre-creating the pair avoids DOM churn on every press.
 let iosLabel: HTMLLabelElement | null = null;
-let iosInput: HTMLInputElement | null = null;
 
 function ensureIOSSwitch(): HTMLLabelElement | null {
   if (typeof document === "undefined") return null;
@@ -209,7 +208,6 @@ function ensureIOSSwitch(): HTMLLabelElement | null {
   document.body.appendChild(label);
 
   iosLabel = label;
-  iosInput = input;
   return label;
 }
 
