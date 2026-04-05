@@ -12,6 +12,7 @@ import { MultiplayerRoom } from "./components/multiplayer/MultiplayerRoom";
 import { MultiplayerGameScreen } from "./components/multiplayer/MultiplayerGameScreen";
 import { MultiplayerGameOverScreen } from "./components/multiplayer/MultiplayerGameOverScreen";
 import { ConnectionOverlay } from "./components/multiplayer/ConnectionOverlay";
+import { primeHaptics } from "./lib/haptics";
 import type { PlayerProfile } from "./lib/multiplayerTypes";
 
 type TopPhase = "solo" | "mp";
@@ -34,6 +35,12 @@ function App() {
   const [topPhase, setTopPhase] = useState<TopPhase>("solo");
 
   const mp = useMultiplayer();
+
+  // Pre-create the iOS haptic switch element so the first button press
+  // pays zero DOM-insert cost.
+  useEffect(() => {
+    primeHaptics();
+  }, []);
 
   // Persist profile edits
   useEffect(() => {

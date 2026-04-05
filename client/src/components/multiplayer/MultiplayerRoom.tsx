@@ -267,7 +267,10 @@ export function MultiplayerRoom({
           }}
         >
           <button
-            onClick={() => setEditingProfile((v) => !v)}
+            onClick={() => {
+              haptic("tap");
+              setEditingProfile((v) => !v);
+            }}
             className="w-full flex items-center justify-between px-4 py-3 cursor-pointer"
           >
             <span
