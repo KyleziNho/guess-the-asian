@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { FloatingReaction, RoomState } from "../../lib/multiplayerTypes";
 import { COUNTRY_MAP } from "../../lib/constants";
@@ -6,6 +7,7 @@ import { PlayerCard } from "./PlayerCard";
 import { ReactionBar } from "./ReactionBar";
 import { FloatingReactions } from "./FloatingReactions";
 import { DisconnectBanner } from "./DisconnectBanner";
+import { haptic } from "../../lib/haptics";
 
 interface MultiplayerGameScreenProps {
   room: RoomState;
@@ -31,6 +33,83 @@ export function MultiplayerGameScreen({
   const person = room.person;
   const options = room.options;
   const isReveal = room.phase === "reveal";
+
+  // Round-advance tick — each new round fires a progress-bar style scroll
+  // pulse so the thin top bar "ratchets" forward with a bump.
+  const prevRoundRef = useRef(room.currentRound);
+  useEffect(() => {
+    if (room.currentRound !== prevRoundRef.current) {
+      prevRoundRef.current = room.currentRound;
+      haptic("tick");
+    }
+  }, [room.currentRound]);
+
+  // Soft buzz when the opponent sends a reaction. We diff against the last
+  // set of seen reaction ids so our own outgoing reactions don't re-buzz.
+  const seenReactionIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    let newIncoming = false;
+    for (const r of reactions) {
+      if (seenReactionIdsRef.current.has(r.id)) continue;
+      seenReactionIdsRef.current.add(r.id);
+      if (r.playerId !== playerId) newIncoming = true;
+    }
+    if (newIncoming) haptic("reaction");
+  }, [reactions, playerId]);
+
+  // Track opponent pick arrival while you're still thinking — a small "locked
+  // in" nudge that they've answered.
+  const oppPickedRef = useRef(false);
+  useEffect(() => {
+    if (!opponent || isReveal) {
+      oppPickedRef.current = false;
+      return;
+    }
+    const picked = room.picks?.[opponent.id] != null;
+    if (picked && !oppPickedRef.current) {
+      oppPickedRef.current = true;
+      haptic("tick");
+    } else if (!picked) {
+      oppPickedRef.current = false;
+    }
+  }, [room.picks, opponent, isReveal]);
+
+  // Opponent disconnection = sharp heavy buzz.
+  const oppConnectedRef = useRef<boolean>(opponent?.connected ?? true);
+  useEffect(() => {
+    if (!opponent) return;
+    if (oppConnectedRef.current && !opponent.connected) {
+      haptic("disconnect");
+    } else if (!oppConnectedRef.current && opponent.connected) {
+      haptic("join");
+    }
+    oppConnectedRef.current = opponent.connected;
+  }, [opponent]);
+
+  // Reveal pulse — fires once per reveal transition, keyed on round so a
+  // lingering reveal phase doesn't re-buzz.
+  const lastRevealRoundRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isReveal || !person) return;
+    if (lastRevealRoundRef.current === room.currentRound) return;
+    lastRevealRoundRef.current = room.currentRound;
+    const selfPickRaw = room.picks?.[playerId] ?? null;
+    const oppPickRaw = opponent ? room.picks?.[opponent.id] ?? null : null;
+    const sCorr = selfPickRaw === person.country;
+    const oCorr = oppPickRaw === person.country;
+    // Prioritize the feel of YOUR result first, then layer a subtle extra
+    // pulse if the outcome was a meaningful split decision.
+    if (sCorr) {
+      haptic("success");
+      // Outplayed the rival — extra triumphant bump.
+      if (opponent && !oCorr) {
+        const t = setTimeout(() => haptic("streak"), 200);
+        return () => clearTimeout(t);
+      }
+    } else {
+      haptic("error");
+    }
+  }, [isReveal, room.currentRound, person, opponent, playerId, room.picks]);
 
   if (!person || !self) return null;
 
@@ -116,7 +195,10 @@ export function MultiplayerGameScreen({
             {room.currentRound + 1}/{room.totalRounds}
           </span>
           <motion.button
-            onClick={onLeave}
+            onClick={() => {
+              haptic("tap");
+              onLeave();
+            }}
             aria-label="Leave match"
             className="flex items-center justify-center w-6 h-6 rounded-full cursor-pointer transition-colors duration-200"
             style={{ color: "rgba(245, 237, 220, 0.45)" }}
@@ -356,7 +438,10 @@ function MultiplayerCountryButtons({
         return (
           <motion.button
             key={name}
-            onClick={() => onGuess(name)}
+            onClick={() => {
+              haptic("select");
+              onGuess(name);
+            }}
             disabled={locked}
             className="relative flex flex-col items-center justify-center gap-1 h-[58px] rounded-xl cursor-pointer disabled:cursor-not-allowed"
             style={{

@@ -5,6 +5,7 @@ import {
   COLOR_THEMES,
   getColorTheme,
 } from "../../lib/multiplayerConstants";
+import { haptic } from "../../lib/haptics";
 
 interface ProfileEditorProps {
   profile: PlayerProfile;
@@ -89,7 +90,10 @@ export function ProfileEditor({
             return (
               <motion.button
                 key={emoji}
-                onClick={() => onChange({ ...profile, avatar: emoji })}
+                onClick={() => {
+                  if (profile.avatar !== emoji) haptic("tick");
+                  onChange({ ...profile, avatar: emoji });
+                }}
                 className="aspect-square rounded-lg flex items-center justify-center text-[22px] cursor-pointer"
                 style={{
                   background: selected
@@ -131,7 +135,10 @@ export function ProfileEditor({
             return (
               <motion.button
                 key={c.id}
-                onClick={() => onChange({ ...profile, color: c.id })}
+                onClick={() => {
+                  if (profile.color !== c.id) haptic("tick");
+                  onChange({ ...profile, color: c.id });
+                }}
                 aria-label={c.label}
                 className="aspect-square rounded-lg cursor-pointer relative"
                 style={{

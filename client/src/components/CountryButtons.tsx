@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { COUNTRY_MAP } from "../lib/constants";
+import { haptic } from "../lib/haptics";
 
 interface CountryButtonsProps {
   options: string[];
@@ -54,7 +55,10 @@ export function CountryButtons({
         return (
           <motion.button
             key={name}
-            onClick={() => onGuess(name)}
+            onClick={() => {
+              haptic("select");
+              onGuess(name);
+            }}
             disabled={disabled}
             className="relative flex flex-col items-center justify-center gap-1 h-[60px] rounded-xl
                        cursor-pointer disabled:cursor-not-allowed"

@@ -12,6 +12,10 @@ import { queueImages } from "../lib/imageCache";
 
 const WS_URL = (() => {
   if (typeof window === "undefined") return "";
+  // In prod (Vercel), VITE_WS_URL should point at the Railway backend, e.g.
+  // wss://your-app.up.railway.app/ws. In dev, Vite proxies /ws to :3001.
+  const custom = import.meta.env.VITE_WS_URL;
+  if (custom) return custom;
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${window.location.host}/ws`;
 })();

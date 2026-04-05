@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { haptic } from "../lib/haptics";
 
 interface StartScreenProps {
   onStart: () => void;
@@ -148,7 +149,10 @@ export function StartScreen({ onStart, onMultiplayer, highScore, isLoading }: St
           transition={{ delay: 0.4, duration: 0.6 }}
         >
           <motion.button
-            onClick={onStart}
+            onClick={() => {
+              haptic("heavy");
+              onStart();
+            }}
             disabled={isLoading}
             className="relative w-full max-w-[340px] block h-[52px] rounded-[10px]
                        text-[15px] font-bold tracking-[0.2em] uppercase
@@ -197,7 +201,10 @@ export function StartScreen({ onStart, onMultiplayer, highScore, isLoading }: St
           </motion.button>
 
           <motion.button
-            onClick={onMultiplayer}
+            onClick={() => {
+              haptic("tap");
+              onMultiplayer();
+            }}
             disabled={isLoading}
             className="relative w-full max-w-[340px] block h-[46px] rounded-[10px]
                        text-[12px] font-bold tracking-[0.2em] uppercase

@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ConnectionStatus } from "../../lib/multiplayerTypes";
+import { haptic } from "../../lib/haptics";
 
 interface ConnectionOverlayProps {
   status: ConnectionStatus;
@@ -12,6 +14,23 @@ interface ConnectionOverlayProps {
  */
 export function ConnectionOverlay({ status }: ConnectionOverlayProps) {
   const visible = status === "reconnecting" || status === "disconnected";
+
+  // Transition-based haptic: one heavy buzz on the drop, a gentle "back
+  // online" chirp when we recover.
+  const prevRef = useRef(status);
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = status;
+    if (prev === status) return;
+    if (status === "disconnected" && prev !== "disconnected") {
+      haptic("disconnect");
+    } else if (
+      status === "connected" &&
+      (prev === "reconnecting" || prev === "disconnected")
+    ) {
+      haptic("join");
+    }
+  }, [status]);
 
   return (
     <AnimatePresence>

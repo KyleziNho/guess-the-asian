@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { RoomState } from "../../lib/multiplayerTypes";
 import { getColorTheme } from "../../lib/multiplayerConstants";
 import { ConfettiEffect } from "../ConfettiEffect";
+import { haptic, hapticScroll } from "../../lib/haptics";
 
 interface MultiplayerGameOverScreenProps {
   room: RoomState;
@@ -53,8 +54,26 @@ export function MultiplayerGameOverScreen({
 
   const shareText = `Guess The Asian Duel · ${self.name} ${selfScore}–${oppScore} ${opponent?.name ?? "???"} (${room.totalRounds} rounds)`;
 
+  // Victory/defeat arrival cue — fire once on mount. We also run a brief
+  // scrolling haptic to accompany the entry animation, then punctuate with
+  // the outcome pulse.
+  const firedRef = useRef(false);
+  useEffect(() => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    const cancel = hapticScroll(600, 10);
+    const t = setTimeout(() => {
+      haptic(outcome === "win" ? "victory" : outcome === "loss" ? "defeat" : "heavy");
+    }, 640);
+    return () => {
+      cancel();
+      clearTimeout(t);
+    };
+  }, [outcome]);
+
   const handleShare = () => {
     navigator.clipboard.writeText(shareText);
+    haptic("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };
@@ -228,7 +247,10 @@ export function MultiplayerGameOverScreen({
         >
           {isHost ? (
             <motion.button
-              onClick={onRematch}
+              onClick={() => {
+                haptic("heavy");
+                onRematch();
+              }}
               className="w-full h-[52px] rounded-xl text-[13px] font-bold tracking-[0.2em] uppercase cursor-pointer relative overflow-hidden"
               style={{
                 background:
@@ -308,7 +330,10 @@ export function MultiplayerGameOverScreen({
               {copied ? "Copied!" : "Share"}
             </motion.button>
             <motion.button
-              onClick={onLeave}
+              onClick={() => {
+                haptic("tap");
+                onLeave();
+              }}
               className="h-11 rounded-xl text-[12px] font-semibold tracking-wide cursor-pointer"
               style={{
                 background:

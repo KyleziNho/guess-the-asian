@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type {
   PlayerProfile,
@@ -11,6 +11,7 @@ import {
   getColorTheme,
 } from "../../lib/multiplayerConstants";
 import { ProfileEditor } from "./ProfileEditor";
+import { haptic } from "../../lib/haptics";
 
 interface MultiplayerRoomProps {
   room: RoomState;
@@ -45,13 +46,37 @@ export function MultiplayerRoom({
 
   useEffect(() => {
     if (error) {
+      haptic("error");
       const t = setTimeout(onClearError, 3200);
       return () => clearTimeout(t);
     }
   }, [error, onClearError]);
 
+  // Opponent arrival / departure buzz.
+  const opponentPresentRef = useRef<boolean>(!!opponent);
+  useEffect(() => {
+    const present = !!opponent;
+    if (present !== opponentPresentRef.current) {
+      opponentPresentRef.current = present;
+      haptic(present ? "join" : "disconnect");
+    }
+  }, [opponent]);
+
+  // Opponent ready state flip.
+  const oppReadyRef = useRef<boolean>(opponent?.ready ?? false);
+  useEffect(() => {
+    const r = opponent?.ready ?? false;
+    if (r !== oppReadyRef.current) {
+      oppReadyRef.current = r;
+      // Only buzz on the flip to "ready" — the un-ready flip is silent to
+      // avoid spam when the opponent toggles back and forth.
+      if (r) haptic("tick");
+    }
+  }, [opponent?.ready]);
+
   const copyCode = () => {
     navigator.clipboard.writeText(room.code);
+    haptic("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
@@ -86,7 +111,10 @@ export function MultiplayerRoom({
         {/* Header row: code + leave */}
         <div className="flex items-center justify-between">
           <motion.button
-            onClick={onLeave}
+            onClick={() => {
+              haptic("tap");
+              onLeave();
+            }}
             className="flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold cursor-pointer"
             style={{
               color: "rgba(245, 237, 220, 0.55)",
@@ -338,7 +366,12 @@ export function MultiplayerRoom({
         {/* Ready / Start */}
         <div className="flex flex-col gap-2.5">
           <motion.button
-            onClick={onToggleReady}
+            onClick={() => {
+              // Flip haptic reflects the new state so "readying up" lands
+              // heavier than "un-readying".
+              haptic(self?.ready ? "tap" : "select");
+              onToggleReady();
+            }}
             className="w-full h-[52px] rounded-xl font-bold cursor-pointer overflow-hidden relative"
             style={{
               background: self?.ready
@@ -381,7 +414,10 @@ export function MultiplayerRoom({
 
           {isHost && (
             <motion.button
-              onClick={onStart}
+              onClick={() => {
+                if (canStart) haptic("ready");
+                onStart();
+              }}
               disabled={!canStart}
               className="w-full h-[52px] rounded-xl font-bold tracking-[0.22em] uppercase text-[13px] cursor-pointer disabled:cursor-not-allowed relative overflow-hidden"
               style={{
@@ -675,8 +711,14 @@ interface RoundStepperProps {
 }
 
 function RoundStepper({ value, onChange }: RoundStepperProps) {
-  const dec = () => onChange(Math.max(MIN_ROUNDS, value - 5));
-  const inc = () => onChange(Math.min(MAX_ROUNDS, value + 5));
+  const dec = () => {
+    if (value > MIN_ROUNDS) haptic("tick");
+    onChange(Math.max(MIN_ROUNDS, value - 5));
+  };
+  const inc = () => {
+    if (value < MAX_ROUNDS) haptic("tick");
+    onChange(Math.min(MAX_ROUNDS, value + 5));
+  };
   return (
     <div className="flex items-center gap-1.5 ml-auto">
       <Stepper onClick={dec} disabled={value <= MIN_ROUNDS}>

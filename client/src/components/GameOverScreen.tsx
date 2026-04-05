@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { RoundResult } from "../lib/types";
 import { TOTAL_ROUNDS } from "../lib/constants";
 import { ConfettiEffect } from "./ConfettiEffect";
+import { haptic, hapticScroll } from "../lib/haptics";
 
 interface GameOverScreenProps {
   score: number;
@@ -173,6 +174,9 @@ export function GameOverScreen({
       const duration = 900;
       const steps = 36;
       const stepTime = duration / steps;
+      // Scrolling haptic — one steady pattern for the whole fill so the
+      // ratcheting ticks stay locked to the visual count-up.
+      const cancelScroll = hapticScroll(duration, Math.min(steps, 24));
       let currentStep = 0;
       const interval = setInterval(() => {
         currentStep += 1;
@@ -181,9 +185,16 @@ export function GameOverScreen({
         const eased = 1 - Math.pow(1 - t, 3);
         setDisplayPercent(Math.round(eased * percentage));
         setDisplayPercentile(Math.round(eased * percentile));
-        if (currentStep >= steps) clearInterval(interval);
+        if (currentStep >= steps) {
+          clearInterval(interval);
+          // Punctuate the landing with a firm thump.
+          haptic(percentage >= 80 ? "victory" : percentage >= 40 ? "success" : "heavy");
+        }
       }, stepTime);
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        cancelScroll();
+      };
     }, 200);
     return () => clearTimeout(startDelay);
   }, [percentage, percentile]);
@@ -196,6 +207,7 @@ export function GameOverScreen({
       bestStreak > 1 ? `\nBest streak: ${bestStreak}` : ""
     }`;
     navigator.clipboard.writeText(text);
+    haptic("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -533,7 +545,10 @@ export function GameOverScreen({
         >
           <div className="flex flex-col items-center gap-1.5">
             <motion.button
-              onClick={onPlayAgain}
+              onClick={() => {
+                haptic("heavy");
+                onPlayAgain();
+              }}
               className="relative w-full h-[52px] rounded-xl text-[14px] font-bold tracking-[0.18em] uppercase
                          cursor-pointer transition-transform duration-200"
               style={{
@@ -599,7 +614,10 @@ export function GameOverScreen({
               {copied ? "Copied!" : "Share"}
             </motion.button>
             <motion.button
-              onClick={onHome}
+              onClick={() => {
+                haptic("tap");
+                onHome();
+              }}
               className="h-11 rounded-xl text-[12px] font-semibold tracking-wide
                          cursor-pointer transition-transform duration-200"
               style={{

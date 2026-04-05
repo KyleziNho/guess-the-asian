@@ -5,6 +5,7 @@ import type {
   PlayerProfile,
 } from "../../lib/multiplayerTypes";
 import { ProfileEditor } from "./ProfileEditor";
+import { haptic } from "../../lib/haptics";
 
 interface MultiplayerLobbyProps {
   profile: PlayerProfile;
@@ -33,6 +34,7 @@ export function MultiplayerLobby({
 
   useEffect(() => {
     if (error) {
+      haptic("error");
       const t = setTimeout(onClearError, 3500);
       return () => clearTimeout(t);
     }
@@ -40,6 +42,7 @@ export function MultiplayerLobby({
 
   const handleJoinSubmit = () => {
     if (codeInput.trim().length === 4) {
+      haptic("select");
       onJoin(codeInput.trim().toUpperCase());
     }
   };
@@ -65,7 +68,10 @@ export function MultiplayerLobby({
         {/* Header */}
         <div className="flex items-center justify-between">
           <motion.button
-            onClick={onBack}
+            onClick={() => {
+              haptic("tap");
+              onBack();
+            }}
             className="flex items-center gap-1.5 text-[11px] tracking-[0.18em] uppercase font-semibold cursor-pointer"
             style={{
               color: "rgba(245, 237, 220, 0.55)",
@@ -198,7 +204,10 @@ export function MultiplayerLobby({
               className="flex flex-col gap-3"
             >
               <motion.button
-                onClick={onCreate}
+                onClick={() => {
+                  if (canAct) haptic("heavy");
+                  onCreate();
+                }}
                 disabled={!canAct}
                 className="relative w-full h-[52px] rounded-xl text-[14px] font-bold tracking-[0.18em] uppercase cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden"
                 style={{
@@ -233,7 +242,10 @@ export function MultiplayerLobby({
               </motion.button>
 
               <motion.button
-                onClick={() => setMode("join")}
+                onClick={() => {
+                  if (canAct) haptic("tap");
+                  setMode("join");
+                }}
                 disabled={!canAct}
                 className="w-full h-[52px] rounded-xl text-[13px] font-bold tracking-[0.18em] uppercase cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
@@ -288,14 +300,14 @@ export function MultiplayerLobby({
                 <input
                   type="text"
                   value={codeInput}
-                  onChange={(e) =>
-                    setCodeInput(
-                      e.target.value
-                        .toUpperCase()
-                        .replace(/[^A-Z]/g, "")
-                        .slice(0, 4)
-                    )
-                  }
+                  onChange={(e) => {
+                    const next = e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z]/g, "")
+                      .slice(0, 4);
+                    if (next.length !== codeInput.length) haptic("tick");
+                    setCodeInput(next);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && codeInput.length === 4) {
                       handleJoinSubmit();
@@ -348,6 +360,7 @@ export function MultiplayerLobby({
                 </motion.button>
                 <motion.button
                   onClick={() => {
+                    haptic("tap");
                     setMode("choose");
                     setCodeInput("");
                   }}

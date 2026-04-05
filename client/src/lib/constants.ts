@@ -15,4 +15,6 @@ export const COUNTRY_MAP = Object.fromEntries(
 export const TOTAL_ROUNDS = 10;
 export const NUM_OPTIONS = 4;
 export const RESULT_DISPLAY_MS = 1200;
-export const API_BASE = "/api";
+// In dev, Vite proxies /api to the local server. In prod (Vercel), point at
+// the Railway backend via VITE_API_BASE (e.g. https://your-app.up.railway.app).
+export const API_BASE = import.meta.env.VITE_API_BASE || "/api";

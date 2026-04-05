@@ -4,6 +4,7 @@ import {
   REACTION_EMOJIS,
   REACTION_RATE_LIMIT_MS,
 } from "../../lib/multiplayerConstants";
+import { haptic } from "../../lib/haptics";
 
 interface ReactionBarProps {
   onSend: (emoji: string) => void;
@@ -15,6 +16,7 @@ export function ReactionBar({ onSend }: ReactionBarProps) {
   const handleSend = (emoji: string) => {
     if (!canSendRef.current) return;
     canSendRef.current = false;
+    haptic("reaction");
     onSend(emoji);
     setTimeout(() => {
       canSendRef.current = true;

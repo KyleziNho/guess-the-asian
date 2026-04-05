@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Player } from "../../lib/multiplayerTypes";
 import { getColorTheme } from "../../lib/multiplayerConstants";
+import { haptic } from "../../lib/haptics";
 
 interface DisconnectBannerProps {
   opponent: Player | null;
@@ -153,7 +154,10 @@ export function DisconnectBanner({
                 </div>
               </div>
               <motion.button
-                onClick={onForfeit}
+                onClick={() => {
+                  haptic("heavy");
+                  onForfeit();
+                }}
                 className="flex-shrink-0 h-8 px-3 rounded-md text-[9px] font-bold tracking-[0.18em] uppercase cursor-pointer whitespace-nowrap"
                 style={{
                   background:
