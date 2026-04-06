@@ -64,3 +64,16 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* Full-viewport background fill — cascades through viewport units so the
+   background covers the entire screen on iOS Safari (including behind the
+   translucent status bar and the URL bar). Older browsers fall back to
+   100vh, newer ones use the large viewport (lvh) which stays pinned to the
+   max possible viewport height. */
+.anim-bg-fill {
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  height: 100lvh;
+}
