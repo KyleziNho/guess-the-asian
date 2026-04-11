@@ -34,17 +34,6 @@ export async function shareResult(data: ShareData): Promise<"shared" | "copied">
 
 // ── Duel share ──────────────────────────────────────────────────────────────
 
-function duelFlavorText(margin: number): string {
-  if (margin >= 5) return "Absolute domination";
-  if (margin >= 4) return "Clean sweep";
-  if (margin >= 2) return "Solid dub";
-  if (margin === 1) return "Scraped by";
-  if (margin === 0) return "Dead heat";
-  if (margin === -1) return "So close";
-  if (margin >= -3) return "Down bad";
-  return "Got cooked";
-}
-
 export function formatDuelShare(room: RoomState, selfId: string): ShareData {
   const self = room.players.find((p) => p.id === selfId);
   const opp = room.players.find((p) => p.id !== selfId);
@@ -52,7 +41,6 @@ export function formatDuelShare(room: RoomState, selfId: string): ShareData {
 
   const selfScore = self.score;
   const oppScore = opp?.score ?? 0;
-  const margin = selfScore - oppScore;
 
   const selfBlocks = room.history
     .map((r) => (r.correct[selfId] ? "1" : "0"))
@@ -61,22 +49,13 @@ export function formatDuelShare(room: RoomState, selfId: string): ShareData {
     ? room.history.map((r) => (r.correct[opp.id] ? "1" : "0")).join("")
     : "";
 
-  const textBlocks = selfBlocks
-    .split("")
-    .map((b) => (b === "1" ? "\u25A0" : "\u25A1"))
-    .join("");
-  const bestStreak = Math.max(self.bestStreak, opp?.bestStreak ?? 0);
-  const flavor = duelFlavorText(margin);
-  const streakLine = bestStreak > 1 ? ` \u00B7 \uD83D\uDD25${bestStreak} streak` : "";
-
-  const text = [
-    "Guess The Asian \u2694\uFE0F DUEL",
-    "",
-    `${self.avatar} ${self.name} ${selfScore} \u2014 ${oppScore} ${opp?.name ?? "???"} ${opp?.avatar ?? "\uD83D\uDC64"}`,
-    textBlocks,
-    "",
-    `${flavor}${streakLine}`,
-  ].join("\n");
+  // Minimal teaser — the OG card does the heavy lifting visually.
+  const text =
+    selfScore > oppScore
+      ? `I beat ${opp?.name ?? "a friend"} ${selfScore}\u2013${oppScore} on Guess The Asian \u2694\uFE0F`
+      : selfScore < oppScore
+        ? `${opp?.name ?? "A friend"} beat me ${oppScore}\u2013${selfScore} on Guess The Asian \u2014 can you avenge me?`
+        : `Tied ${selfScore}\u2013${oppScore} on Guess The Asian \u2694\uFE0F Who's the real champ?`;
 
   const params = new URLSearchParams();
   params.set("m", "d");
@@ -102,20 +81,18 @@ export function formatSoloShare(
   score: number,
   results: RoundResult[],
   bestStreak: number,
-  rankTitle: string,
+  _rankTitle: string,
 ): ShareData {
   const pct = Math.round((score / TOTAL_ROUNDS) * 100);
   const blocksBinary = results.map((r) => (r.correct ? "1" : "0")).join("");
-  const textBlocks = results
-    .map((r) => (r.correct ? "\u25A0" : "\u25A1"))
-    .join(" ");
-  const streakLine = bestStreak > 1 ? ` \u00B7 \uD83D\uDD25${bestStreak} streak` : "";
 
-  const text = [
-    `Guess The Asian \uD83C\uDF0F \u00B7 ${rankTitle}`,
-    `${pct}% \u2014 ${score} of ${TOTAL_ROUNDS}${streakLine}`,
-    textBlocks,
-  ].join("\n");
+  // Short teaser — the preview card shows the rank, blocks, flavor, etc.
+  const text =
+    pct >= 80
+      ? `I scored ${pct}% on Guess The Asian \uD83C\uDF0F \u2014 beat me?`
+      : pct >= 50
+        ? `${pct}% on Guess The Asian \uD83C\uDF0F \u2014 think you can do better?`
+        : `I got humbled by Guess The Asian \uD83C\uDF0F (${pct}%). Your turn.`;
 
   const params = new URLSearchParams();
   params.set("m", "s");

@@ -73,17 +73,40 @@ function parseBlocks(raw: string | null, length: number): string {
   return s.padEnd(length, "0").slice(0, length);
 }
 
-export default async function handler(req: Request) {
+// Node.js runtime handler — ImageResponse is a fetch Response, so we read its
+// body into a Buffer and pipe it through Node's ServerResponse.
+export default async function handler(
+  req: { url?: string; headers: { host?: string } },
+  res: {
+    statusCode: number;
+    setHeader: (name: string, value: string) => void;
+    end: (body?: string | Uint8Array) => void;
+  },
+) {
   try {
-    const { searchParams } = new URL(req.url);
-    const mode = searchParams.get("m") ?? "s";
+    const url = new URL(
+      req.url ?? "/",
+      `https://${req.headers.host ?? "asianguesser.com"}`,
+    );
+    const params = url.searchParams;
+    const mode = params.get("m") ?? "s";
 
-    if (mode === "d") {
-      return await duelImage(searchParams);
-    }
-    return await soloImage(searchParams);
+    const imgRes =
+      mode === "d" ? await duelImage(params) : await soloImage(params);
+    const arrayBuffer = await imgRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400",
+    );
+    res.statusCode = 200;
+    res.end(buffer);
   } catch (err) {
-    return new Response(`OG image error: ${(err as Error).message}`, { status: 500 });
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain");
+    res.end(`OG image error: ${(err as Error).message}`);
   }
 }
 
