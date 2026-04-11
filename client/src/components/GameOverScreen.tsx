@@ -4,6 +4,7 @@ import type { RoundResult } from "../lib/types";
 import { TOTAL_ROUNDS } from "../lib/constants";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { haptic, hapticScroll } from "../lib/haptics";
+import { formatSoloShare, shareResult } from "../lib/share";
 
 interface GameOverScreenProps {
   score: number;
@@ -163,7 +164,7 @@ export function GameOverScreen({
   const [displayPercent, setDisplayPercent] = useState(0);
   const [displayPercentile, setDisplayPercentile] = useState(0);
   const isNewHighScore = score > highScore && score > 0;
-  const [copied, setCopied] = useState(false);
+  const [shareLabel, setShareLabel] = useState<"Share" | "Copied!" | "Shared!">("Share");
   const rank = getRank(score);
   // Pick a flavor line once per mount so it stays stable across re-renders.
   const [flavorLine] = useState(() => pickFlavorLine(percentage));
@@ -199,17 +200,12 @@ export function GameOverScreen({
     return () => clearTimeout(startDelay);
   }, [percentage, percentile]);
 
-  const handleShare = () => {
-    const blocks = results
-      .map((r) => (r.correct ? "\u25A0" : "\u25A1"))
-      .join(" ");
-    const text = `Guess The Asian \u2014 ${rank.title} \u00B7 ${percentage}% (${score}/${TOTAL_ROUNDS})\n${blocks}${
-      bestStreak > 1 ? `\nBest streak: ${bestStreak}` : ""
-    }`;
-    navigator.clipboard.writeText(text);
+  const handleShare = async () => {
     haptic("success");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const data = formatSoloShare(score, results, bestStreak, rank.title);
+    const result = await shareResult(data);
+    setShareLabel(result === "shared" ? "Shared!" : "Copied!");
+    setTimeout(() => setShareLabel("Share"), 2000);
   };
 
   const getCTASubtitle = () => {
@@ -611,7 +607,7 @@ export function GameOverScreen({
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
-              {copied ? "Copied!" : "Share"}
+              {shareLabel}
             </motion.button>
             <motion.button
               onClick={() => {

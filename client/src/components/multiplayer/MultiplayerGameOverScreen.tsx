@@ -4,6 +4,7 @@ import type { RoomState } from "../../lib/multiplayerTypes";
 import { getColorTheme } from "../../lib/multiplayerConstants";
 import { ConfettiEffect } from "../ConfettiEffect";
 import { haptic, hapticScroll } from "../../lib/haptics";
+import { formatDuelShare, shareResult } from "../../lib/share";
 
 interface MultiplayerGameOverScreenProps {
   room: RoomState;
@@ -21,7 +22,7 @@ export function MultiplayerGameOverScreen({
   const self = room.players.find((p) => p.id === playerId);
   const opponent = room.players.find((p) => p.id !== playerId);
   const isHost = room.hostId === playerId;
-  const [copied, setCopied] = useState(false);
+  const [shareLabel, setShareLabel] = useState<"Share" | "Copied!" | "Shared!">("Share");
 
   if (!self) return null;
 
@@ -52,8 +53,6 @@ export function MultiplayerGameOverScreen({
         ? `${opponent?.name ?? "Your rival"} edged you out`
         : "A dead heat — both of you tied";
 
-  const shareText = `Guess The Asian Duel · ${self.name} ${selfScore}–${oppScore} ${opponent?.name ?? "???"} (${room.totalRounds} rounds)`;
-
   // Victory/defeat arrival cue — fire once on mount. We also run a brief
   // scrolling haptic to accompany the entry animation, then punctuate with
   // the outcome pulse.
@@ -71,11 +70,12 @@ export function MultiplayerGameOverScreen({
     };
   }, [outcome]);
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(shareText);
+  const handleShare = async () => {
     haptic("success");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    const data = formatDuelShare(room, playerId);
+    const result = await shareResult(data);
+    setShareLabel(result === "shared" ? "Shared!" : "Copied!");
+    setTimeout(() => setShareLabel("Share"), 1800);
   };
 
   return (
@@ -327,7 +327,7 @@ export function MultiplayerGameOverScreen({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
             >
-              {copied ? "Copied!" : "Share"}
+              {shareLabel}
             </motion.button>
             <motion.button
               onClick={() => {
