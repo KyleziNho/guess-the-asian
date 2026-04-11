@@ -1,6 +1,6 @@
 import { ImageResponse } from "@vercel/og";
 
-export const config = { runtime: "edge" };
+export const config = { runtime: "nodejs20.x" };
 
 // Warm parchment palette matching the app
 const C = {
